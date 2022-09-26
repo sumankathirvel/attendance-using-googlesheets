@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  
+    <base target="_top">
+      <meta name="viewport" content="width=device-width, initial-scale=1. shrink-to-fit=no"> 
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"> 
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    
+  </head>
+  <body onload="initialSetup();">
+  <div class="container mb-3"  align ="center">
+  <form>
+  <div class="form-group mt-3 mb-3">
+    <h1 align ="center">Attendance Portal</h1>
+  <label for="userEmail" class="col-4 col-form-label mt-4"><b>Select Your ID</b></label> 
+  <div class="col-8">
+
+
+
+
+  <select id="userEmail" name="userEmail" required="required" class="custom-select mt-4"></select>
+
+  
+  </div>
+  </div>
+  <div class="form-group mt-3 mb-3">
+  <label for="userPassword" class="col-4 col-form-label mt-4"><b>PASSWORD</b></label> 
+  <div class="col-8">
+  <input id="userPassword" name="userPassword" placeholder="Enter your password" type="password" required="required" class="form-control mt-4">
+  </div>
+  </div>
+  
+  <div class="form-group mt-3 mb-3">
+  <label for="userName" class="col-4 col-form-label mt-4"><b>USER NAME</b></label> 
+  <div class="col-8">
+  <input id="userName" name="userName" placeholder="Enter your name" type="text" required="required" class="form-control mt-4">
+  </div>
+  </div>
+  
+  <div class="form-group mt-3 mb-3">
+  <label for="attendanceType" class="col-4 col-form-label mt-4"><b>ATTENDANCE TYPE</b></label> 
+  <div class="col-8">
+  <select id="attendanceType" name="attendanceType" required="required" class="custom-select mt-4">
+  <option value="IN">IN</option>
+  <option value="OUT">OUT</option>
+  </select>
+  </div>
+  </div> 
+  <div class="form-group mt-3 mb-3">
+  <label for="userLatLong" class="col-4 col-form-label mt-4"><b>Latitude/Longitude</b></label> 
+  <div class="col-8">
+  <input id="userLatLong" name="userLatLong" type="text" required="required" class="form-control mt-4" disabled>
+  </div>
+  </div>
+  <div class="form-group mt-3 mb-3">
+  <div class="offset-4 col-8">
+  <button name="submit" type="button" class="btn btn-primary mb-4" onclick="checkUser();">Submit</button>
+  </div>
+  </div>
+  </form>
+ 
+  
+  </div>
+  </body>
+  <script>
+
+    function initialSetup(){
+    
+    google.script.run.withSuccessHandler(returnedServerResponse).fetchEmailId();
+    
+    }
+    
+    
+    function returnedServerResponse(response){
+    
+      var serverresponse = JSON.parse(response);
+      
+      if(serverresponse.status =="success")
+      {
+         for(var i=0;i<serverresponse.emailid.length-1;i++)
+         {
+            $("#userEmail").append('<option value="' + serverresponse.emailid[i] + '">' + serverresponse.emailid[i] + '</option>');
+         }
+      }
+    
+    }
+    
+    
+    function checkUser()
+    {
+    
+    if($("#userName").val()=="" || $("#userEmail").val()=="" || $("#userPassword").val()=="" || $("#attendanceType").val()=="")
+    {
+    getLocation();
+    alert("Please complete the required details and enable location permission...");
+    }
+    else{
+    $("#submitattendance").prop("disabled", true);
+    
+    getLocation();
+    var userDetails={};
+    
+    userDetails.userid = $("#userEmail").val();
+    userDetails.userpass = $("#userPassword").val();
+    
+    google.script.run.withSuccessHandler(authenticationResponse).authenticateUser(JSON.stringify(userDetails));
+    }
+    }
+    
+    
+    function authenticationResponse(response){
+    if(response=="success"){
+    var userDetails={};
+    userDetails.username = $("#userName").val();
+    userDetails.userid = $("#userEmail").val();
+    userDetails.userpass = $("#userPassword").val();
+    userDetails.attendanceType = $("#attendanceType").val();
+    userDetails.currentTime = new Date().getHours()+":"+new Date().getMinutes() + ":" + new Date().getSeconds();
+    
+    getLocation();
+    userDetails.latlong = $("#userLatLong").val();
+    if($("#userName").val()=="" || $("#userEmail").val()=="" || $("#userPassword").val()=="" || $("#attendanceType").val()=="" || ($("#userLatLong").val()=="")){
+    alert("Please complete the required details and enable location permission...");
+    $("#submitattendance").removeAttr('disabled');
+    }
+    else{
+    google.script.run.withSuccessHandler(afterDataSaved).saveToSheet(JSON.stringify(userDetails));
+    }
+    }
+    
+    else{
+    
+    alert("Email or Password Incorrect. Please try again...");
+    $("#submitattendance").removeAttr('disabled');
+    }
+    }
+    
+    function afterDataSaved(response){
+    
+    if(response =="success"){
+    $("#userName").val("");
+    $("#userPassword").val("");
+    alert("Attendance submitted successfully...");
+    
+    }
+    
+    else{
+    
+    alert("Server Error.. Please try again...");
+    }
+    $("#submitattendance").removeAttr('disabled');
+    }
+    
+    function getLocation() {
+    var x = document.getElementById("userLatLong");
+      if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(showPosition);
+      } else { 
+        x.innerHTML = "Geolocation is not supported by this browser.";
+      }
+    }
+        
+    function showPosition(position) {
+    
+       $("#userLatLong").val(position.coords.latitude + "," + position.coords.longitude);
+    }
+    
+    
+    
+    </script>
+    <style>
+      body{
+     background-color:grey;
+      }
+      input{
+        width: 200px;
+        height: 20px;
+      }
+      .container{
+      
+        box-shadow: 2px 2px 50px;
+        margin-top:100px;
+        width:auto;
+        margin-bottom:10px;
+        border-radius:10px;
+        background-color:white;
+        border:2px solid #f5c6cb;
+        box-shadow: 1px 1px 30px;
+      }
+      
+      </style>
+      
+</html>
